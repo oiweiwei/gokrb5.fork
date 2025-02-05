@@ -23,20 +23,20 @@ const (
 
 // Keytab struct.
 type Keytab struct {
-	version uint8
-	Entries []entry
+	Version uint8
+	Entries []Entry
 }
 
 // Keytab entry struct.
-type entry struct {
-	Principal principal
+type Entry struct {
+	Principal Principal
 	Timestamp time.Time
 	KVNO8     uint8
 	Key       types.EncryptionKey
 	KVNO      uint32
 }
 
-func (e entry) String() string {
+func (e Entry) String() string {
 	return fmt.Sprintf("% 4d %s %-56s %2d %-64x",
 		e.KVNO8,
 		e.Timestamp.Format("02/01/06 15:04:05"),
@@ -47,22 +47,22 @@ func (e entry) String() string {
 }
 
 // Keytab entry principal struct.
-type principal struct {
+type Principal struct {
 	NumComponents int16 `json:"-"`
 	Realm         string
 	Components    []string
 	NameType      int32
 }
 
-func (p principal) String() string {
+func (p Principal) String() string {
 	return fmt.Sprintf("%s@%s", strings.Join(p.Components, "/"), p.Realm)
 }
 
 // New creates new, empty Keytab type.
 func New() *Keytab {
-	var e []entry
+	var e []Entry
 	return &Keytab{
-		version: 2,
+		Version: 2,
 		Entries: e,
 	}
 }
@@ -99,10 +99,10 @@ func (kt *Keytab) GetEncryptionKey(princName types.PrincipalName, realm string, 
 }
 
 // Create a new Keytab entry.
-func newEntry() entry {
+func NewEntry() Entry {
 	var b []byte
-	return entry{
-		Principal: newPrincipal(),
+	return Entry{
+		Principal: NewPrincipal(),
 		Timestamp: time.Time{},
 		KVNO8:     0,
 		Key: types.EncryptionKey{
@@ -134,9 +134,9 @@ func (kt *Keytab) AddEntry(principalName, realm, password string, ts time.Time, 
 	}
 
 	// Populate the keytab entry principal
-	ktep := newPrincipal()
+	ktep := NewPrincipal()
 	ktep.NumComponents = int16(len(princ.NameString))
-	if kt.version == 1 {
+	if kt.Version == 1 {
 		ktep.NumComponents += 1
 	}
 
@@ -145,7 +145,7 @@ func (kt *Keytab) AddEntry(principalName, realm, password string, ts time.Time, 
 	ktep.NameType = princ.NameType
 
 	// Populate the keytab entry
-	e := newEntry()
+	e := NewEntry()
 	e.Principal = ktep
 	e.Timestamp = ts
 	e.KVNO8 = KVNO
@@ -157,9 +157,9 @@ func (kt *Keytab) AddEntry(principalName, realm, password string, ts time.Time, 
 }
 
 // Create a new principal.
-func newPrincipal() principal {
+func NewPrincipal() Principal {
 	var c []string
-	return principal{
+	return Principal{
 		NumComponents: 0,
 		Realm:         "",
 		Components:    c,
@@ -180,9 +180,9 @@ func Load(ktPath string) (*Keytab, error) {
 
 // Marshal keytab into byte slice
 func (kt *Keytab) Marshal() ([]byte, error) {
-	b := []byte{keytabFirstByte, kt.version}
+	b := []byte{keytabFirstByte, kt.Version}
 	for _, e := range kt.Entries {
-		eb, err := e.marshal(int(kt.version))
+		eb, err := e.Marshal(int(kt.Version))
 		if err != nil {
 			return b, err
 		}
@@ -213,14 +213,14 @@ func (kt *Keytab) Unmarshal(b []byte) error {
 	}
 	//Get keytab version
 	//The 2nd byte contains the version number (1 or 2)
-	kt.version = b[1]
-	if kt.version != 1 && kt.version != 2 {
+	kt.Version = b[1]
+	if kt.Version != 1 && kt.Version != 2 {
 		return errors.New("invalid keytab data. Keytab version is neither 1 nor 2")
 	}
 	//Version 1 of the file format uses native byte order for integer representations. Version 2 always uses big-endian byte order
 	var endian binary.ByteOrder
 	endian = binary.BigEndian
-	if kt.version == 1 && isNativeEndianLittle() {
+	if kt.Version == 1 && isNativeEndianLittle() {
 		endian = binary.LittleEndian
 	}
 	// n tracks position in the byte array
@@ -243,7 +243,7 @@ func (kt *Keytab) Unmarshal(b []byte) error {
 			}
 			eb := b[n : n+int(l)]
 			n = n + int(l)
-			ke := newEntry()
+			ke := NewEntry()
 			// p keeps track as to where we are in the byte stream
 			var p int
 			var err error
@@ -303,9 +303,9 @@ func (kt *Keytab) Unmarshal(b []byte) error {
 	return nil
 }
 
-func (e entry) marshal(v int) ([]byte, error) {
+func (e Entry) Marshal(v int) ([]byte, error) {
 	var b []byte
-	pb, err := e.Principal.marshal(v)
+	pb, err := e.Principal.Marshal(v)
 	if err != nil {
 		return b, err
 	}
@@ -343,13 +343,13 @@ func (e entry) marshal(v int) ([]byte, error) {
 }
 
 // Parse the Keytab bytes of a principal into a Keytab entry's principal.
-func parsePrincipal(b []byte, p *int, kt *Keytab, ke *entry, e *binary.ByteOrder) error {
+func parsePrincipal(b []byte, p *int, kt *Keytab, ke *Entry, e *binary.ByteOrder) error {
 	var err error
 	ke.Principal.NumComponents, err = readInt16(b, p, e)
 	if err != nil {
 		return err
 	}
-	if kt.version == 1 {
+	if kt.Version == 1 {
 		//In version 1 the number of components includes the realm. Minus 1 to make consistent with version 2
 		ke.Principal.NumComponents--
 	}
@@ -373,7 +373,7 @@ func parsePrincipal(b []byte, p *int, kt *Keytab, ke *entry, e *binary.ByteOrder
 		}
 		ke.Principal.Components = append(ke.Principal.Components, string(compB))
 	}
-	if kt.version != 1 {
+	if kt.Version != 1 {
 		//Name Type is omitted in version 1
 		ke.Principal.NameType, err = readInt32(b, p, e)
 		if err != nil {
@@ -383,7 +383,7 @@ func parsePrincipal(b []byte, p *int, kt *Keytab, ke *entry, e *binary.ByteOrder
 	return nil
 }
 
-func (p principal) marshal(v int) ([]byte, error) {
+func (p Principal) Marshal(v int) ([]byte, error) {
 	//var b []byte
 	b := make([]byte, 2)
 	var endian binary.ByteOrder

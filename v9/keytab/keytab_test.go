@@ -24,7 +24,7 @@ func TestUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error parsing keytab data: %v\n", err)
 	}
-	assert.Equal(t, uint8(2), kt.version, "Keytab version not as expected")
+	assert.Equal(t, uint8(2), kt.Version, "Keytab version not as expected")
 	assert.Equal(t, uint32(1), kt.Entries[0].KVNO, "KVNO not as expected")
 	assert.Equal(t, uint8(1), kt.Entries[0].KVNO8, "KVNO8 not as expected")
 	assert.Equal(t, time.Unix(1505669592, 0), kt.Entries[0].Timestamp, "Timestamp not as expected")
@@ -69,7 +69,7 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not load keytab: %v", err)
 	}
-	assert.Equal(t, uint8(2), kt.version, "keytab version not as expected")
+	assert.Equal(t, uint8(2), kt.Version, "keytab version not as expected")
 	assert.Equal(t, 12, len(kt.Entries), "keytab entry count not as expected: %+v", *kt)
 	for _, e := range kt.Entries {
 		if e.Principal.Realm != "TEST.GOKRB5" {
