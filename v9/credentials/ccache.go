@@ -20,33 +20,33 @@ const (
 // CCache is the file credentials cache as define here: https://web.mit.edu/kerberos/krb5-latest/doc/formats/ccache_file_format.html
 type CCache struct {
 	Version          uint8
-	Header           header
-	DefaultPrincipal principal
+	Header           Header
+	DefaultPrincipal Principal
 	Credentials      []*Credential
 	Path             string
 }
 
-type header struct {
-	length uint16
-	fields []headerField
+type Header struct {
+	Length uint16
+	Fields []HeaderField
 }
 
-type headerField struct {
-	tag    uint16
-	length uint16
-	value  []byte
+type HeaderField struct {
+	Tag    uint16
+	Length uint16
+	Value  []byte
 }
 
 // Credential cache entry principal struct.
-type principal struct {
+type Principal struct {
 	Realm         string
 	PrincipalName types.PrincipalName
 }
 
 // Credential holds a Kerberos client's ccache credential information.
 type Credential struct {
-	Client       principal
-	Server       principal
+	Client       Principal
+	Server       Principal
 	Key          types.EncryptionKey
 	AuthTime     time.Time
 	StartTime    time.Time
@@ -113,25 +113,25 @@ func parseHeader(b []byte, p *int, c *CCache, e *binary.ByteOrder) error {
 	if c.Version != 4 {
 		return errors.New("Credentials cache version is not 4 so there is no header to parse.")
 	}
-	h := header{}
-	h.length = uint16(readInt16(b, p, e))
-	for *p <= int(h.length) {
-		f := headerField{}
-		f.tag = uint16(readInt16(b, p, e))
-		f.length = uint16(readInt16(b, p, e))
-		f.value = b[*p : *p+int(f.length)]
-		*p += int(f.length)
-		if !f.valid() {
+	h := Header{}
+	h.Length = uint16(readInt16(b, p, e))
+	for *p <= int(h.Length) {
+		f := HeaderField{}
+		f.Tag = uint16(readInt16(b, p, e))
+		f.Length = uint16(readInt16(b, p, e))
+		f.Value = b[*p : *p+int(f.Length)]
+		*p += int(f.Length)
+		if !f.Valid() {
 			return errors.New("Invalid credential cache header found")
 		}
-		h.fields = append(h.fields, f)
+		h.Fields = append(h.Fields, f)
 	}
 	c.Header = h
 	return nil
 }
 
 // Parse the Keytab bytes of a principal into a Keytab entry's principal.
-func parsePrincipal(b []byte, p *int, c *CCache, e *binary.ByteOrder) (princ principal) {
+func parsePrincipal(b []byte, p *int, c *CCache, e *binary.ByteOrder) (princ Principal) {
 	if c.Version != 1 {
 		//Name Type is omitted in version 1
 		princ.PrincipalName.NameType = readInt32(b, p, e)
@@ -247,11 +247,11 @@ func (c *CCache) GetEntries() []*Credential {
 	return creds
 }
 
-func (h *headerField) valid() bool {
+func (h *HeaderField) Valid() bool {
 	// See https://web.mit.edu/kerberos/krb5-latest/doc/formats/ccache_file_format.html - Header format
-	switch h.tag {
+	switch h.Tag {
 	case headerFieldTagKDCOffset:
-		if h.length != 8 || len(h.value) != 8 {
+		if h.Length != 8 || len(h.Value) != 8 {
 			return false
 		}
 		return true
