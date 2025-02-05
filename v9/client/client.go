@@ -59,10 +59,43 @@ func NewWithKeytab(username, realm string, kt *keytab.Keytab, krb5conf *config.C
 	}
 }
 
+// NewWithEncryptionKey creates a new client from an encryption key credential.
+func NewWithEncryptionKey(username, realm string, key types.EncryptionKey, krb5conf *config.Config, settings ...func(*Settings)) *Client {
+	creds := credentials.New(username, realm)
+	return &Client{
+		Credentials: creds.WithEncryptionKey(key),
+		Config:      krb5conf,
+		settings:    NewSettings(settings...),
+		sessions: &sessions{
+			Entries: make(map[string]*session),
+		},
+		cache: NewCache(),
+	}
+}
+
 // NewFromCCache create a client from a populated client cache.
 //
 // WARNING: A client created from CCache does not automatically renew TGTs and a failure will occur after the TGT expires.
 func NewFromCCache(c *credentials.CCache, krb5conf *config.Config, settings ...func(*Settings)) (*Client, error) {
+
+	cl, err := NewFromCCacheOptionalTGT(c, krb5conf, settings...)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := cl.sessions.Entries[c.DefaultPrincipal.Realm]; !ok {
+		return nil, fmt.Errorf("no TGT found in cache for realm %s", c.DefaultPrincipal.Realm)
+	}
+
+	return cl, nil
+}
+
+// NewFromCCacheOptionalTGT create a client from a populated client cache.
+//
+// It will not require TGT to be present in the cache in order to create the client.
+//
+// WARNING: A client created from CCache does not automatically renew TGTs and a failure will occur after the TGT expires.
+func NewFromCCacheOptionalTGT(c *credentials.CCache, krb5conf *config.Config, settings ...func(*Settings)) (*Client, error) {
 	cl := &Client{
 		Credentials: c.GetClientCredentials(),
 		Config:      krb5conf,
@@ -72,32 +105,24 @@ func NewFromCCache(c *credentials.CCache, krb5conf *config.Config, settings ...f
 		},
 		cache: NewCache(),
 	}
-	spn := types.PrincipalName{
+	tgtSPN := types.PrincipalName{
 		NameType:   nametype.KRB_NT_SRV_INST,
 		NameString: []string{"krbtgt", c.DefaultPrincipal.Realm},
 	}
-	cred, ok := c.GetEntry(spn)
-	if !ok {
-		return cl, errors.New("TGT not found in CCache")
-	}
-	var tgt messages.Ticket
-	err := tgt.Unmarshal(cred.Ticket)
-	if err != nil {
-		return cl, fmt.Errorf("TGT bytes in cache are not valid: %v", err)
-	}
-	cl.sessions.Entries[c.DefaultPrincipal.Realm] = &session{
-		realm:      c.DefaultPrincipal.Realm,
-		authTime:   cred.AuthTime,
-		endTime:    cred.EndTime,
-		renewTill:  cred.RenewTill,
-		tgt:        tgt,
-		sessionKey: cred.Key,
-	}
 	for _, cred := range c.GetEntries() {
 		var tkt messages.Ticket
-		err = tkt.Unmarshal(cred.Ticket)
-		if err != nil {
+		if err := tkt.Unmarshal(cred.Ticket); err != nil {
 			return cl, fmt.Errorf("cache entry ticket bytes are not valid: %v", err)
+		}
+		if cred.Server.PrincipalName.Equal(tgtSPN) {
+			cl.sessions.Entries[c.DefaultPrincipal.Realm] = &session{
+				realm:      c.DefaultPrincipal.Realm,
+				authTime:   cred.AuthTime,
+				endTime:    cred.EndTime,
+				renewTill:  cred.RenewTill,
+				tgt:        tkt,
+				sessionKey: cred.Key,
+			}
 		}
 		cl.cache.addEntry(
 			tkt,
@@ -117,8 +142,8 @@ func NewFromCCache(c *credentials.CCache, krb5conf *config.Config, settings ...f
 // A KRBError can be passed in the event the KDC returns one of type KDC_ERR_PREAUTH_REQUIRED and is required to derive
 // the key for pre-authentication from the client's password. If a KRBError is not available, pass nil to this argument.
 func (cl *Client) Key(etype etype.EType, kvno int, krberr *messages.KRBError) (types.EncryptionKey, int, error) {
-	if cl.Credentials.HasKeytab() && etype != nil {
-		return cl.Credentials.Keytab().GetEncryptionKey(cl.Credentials.CName(), cl.Credentials.Domain(), kvno, etype.GetETypeID())
+	if cl.Credentials.HasKeyProvider() && etype != nil {
+		return cl.Credentials.KeyProvider().GetEncryptionKey(cl.Credentials.CName(), cl.Credentials.Domain(), kvno, etype.GetETypeID())
 	} else if cl.Credentials.HasPassword() {
 		if krberr != nil && krberr.ErrorCode == errorcode.KDC_ERR_PREAUTH_REQUIRED {
 			var pas types.PADataSequence
@@ -144,7 +169,7 @@ func (cl *Client) IsConfigured() (bool, error) {
 		return false, errors.New("client does not have a define realm")
 	}
 	// Client needs to have either a password, keytab or a session already (later when loading from CCache)
-	if !cl.Credentials.HasPassword() && !cl.Credentials.HasKeytab() {
+	if !cl.Credentials.HasPassword() && !cl.Credentials.HasKeyProvider() {
 		authTime, _, _, _, err := cl.sessionTimes(cl.Credentials.Domain())
 		if err != nil || authTime.IsZero() {
 			return false, errors.New("client has neither a keytab nor a password set and no session")
@@ -168,7 +193,7 @@ func (cl *Client) Login() error {
 	if ok, err := cl.IsConfigured(); !ok {
 		return err
 	}
-	if !cl.Credentials.HasPassword() && !cl.Credentials.HasKeytab() {
+	if !cl.Credentials.HasPassword() && !cl.Credentials.HasKeyProvider() {
 		_, endTime, _, _, err := cl.sessionTimes(cl.Credentials.Domain())
 		if err != nil {
 			return krberror.Errorf(err, krberror.KRBMsgError, "no user credentials available and error getting any existing session")
@@ -247,12 +272,17 @@ func (cl *Client) Destroy() {
 func (cl *Client) Diagnostics(w io.Writer) error {
 	cl.Print(w)
 	var errs []string
-	if cl.Credentials.HasKeytab() {
+	if cl.Credentials.HasKeyProvider() {
 		var loginRealmEncTypes []int32
-		for _, e := range cl.Credentials.Keytab().Entries {
-			if e.Principal.Realm == cl.Credentials.Realm() {
-				loginRealmEncTypes = append(loginRealmEncTypes, e.Key.KeyType)
+		if cl.Credentials.HasKeytab() {
+			for _, e := range cl.Credentials.Keytab().Entries {
+				if e.Principal.Realm == cl.Credentials.Realm() {
+					loginRealmEncTypes = append(loginRealmEncTypes, e.Key.KeyType)
+				}
 			}
+		}
+		if cl.Credentials.HasEncryptionKey() {
+			loginRealmEncTypes = append(loginRealmEncTypes, cl.Credentials.EncryptionKey().KeyType)
 		}
 		for _, et := range cl.Config.LibDefaults.DefaultTktEnctypeIDs {
 			var etInKt bool

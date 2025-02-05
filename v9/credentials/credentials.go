@@ -27,6 +27,7 @@ type Credentials struct {
 	realm           string
 	cname           types.PrincipalName
 	keytab          *keytab.Keytab
+	encryptionKey   types.EncryptionKey
 	password        string
 	attributes      map[string]interface{}
 	validUntil      time.Time
@@ -89,6 +90,8 @@ func New(username string, realm string) *Credentials {
 	}
 }
 
+type clearFlag uint8
+
 // NewFromPrincipalName creates a new Credentials instance with the user details provides as a PrincipalName type.
 func NewFromPrincipalName(cname types.PrincipalName, realm string) *Credentials {
 	c := New(cname.PrincipalNameString(), realm)
@@ -96,10 +99,45 @@ func NewFromPrincipalName(cname types.PrincipalName, realm string) *Credentials 
 	return c
 }
 
+func (c *Credentials) HasKeyProvider() bool {
+	return c.HasKeytab() || c.HasEncryptionKey()
+}
+
+func (c *Credentials) KeyProvider() KeyProvider {
+	if c.HasKeytab() {
+		return c.Keytab()
+	}
+	if c.HasEncryptionKey() {
+		return (EncryptionKeyProvider)(c.EncryptionKey())
+	}
+
+	return nil
+}
+
+// WithEncryptionKey sets the encryption key in the Credentials struct.
+func (c *Credentials) WithEncryptionKey(key types.EncryptionKey) *Credentials {
+	c.encryptionKey = key
+	c.password, c.keytab = "", keytab.New()
+	return c
+}
+
+// EncryptionKey returns the credential's encryption key.
+func (c *Credentials) EncryptionKey() types.EncryptionKey {
+	return c.encryptionKey
+}
+
+// HasEncryptionKey queries if the Credentials has an NT hash defined.
+func (c *Credentials) HasEncryptionKey() bool {
+	if c.encryptionKey.KeyType != 0 && len(c.encryptionKey.KeyValue) > 0 {
+		return true
+	}
+	return false
+}
+
 // WithKeytab sets the Keytab in the Credentials struct.
 func (c *Credentials) WithKeytab(kt *keytab.Keytab) *Credentials {
 	c.keytab = kt
-	c.password = ""
+	c.password, c.encryptionKey = "", types.EncryptionKey{}
 	return c
 }
 
@@ -119,7 +157,7 @@ func (c *Credentials) HasKeytab() bool {
 // WithPassword sets the password in the Credentials struct.
 func (c *Credentials) WithPassword(password string) *Credentials {
 	c.password = password
-	c.keytab = keytab.New() // clear any keytab
+	c.encryptionKey, c.keytab = types.EncryptionKey{}, keytab.New()
 	return c
 }
 

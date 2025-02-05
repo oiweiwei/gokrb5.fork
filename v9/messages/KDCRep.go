@@ -216,8 +216,8 @@ func (e *EncKDCRepPart) Marshal() ([]byte, error) {
 func (k *ASRep) DecryptEncPart(c *credentials.Credentials) (types.EncryptionKey, error) {
 	var key types.EncryptionKey
 	var err error
-	if c.HasKeytab() {
-		key, _, err = c.Keytab().GetEncryptionKey(k.CName, k.CRealm, k.EncPart.KVNO, k.EncPart.EType)
+	if c.HasKeyProvider() {
+		key, _, err = c.KeyProvider().GetEncryptionKey(k.CName, k.CRealm, k.EncPart.KVNO, k.EncPart.EType)
 		if err != nil {
 			return key, krberror.Errorf(err, krberror.DecryptingError, "error decrypting AS_REP encrypted part")
 		}
@@ -228,7 +228,7 @@ func (k *ASRep) DecryptEncPart(c *credentials.Credentials) (types.EncryptionKey,
 			return key, krberror.Errorf(err, krberror.DecryptingError, "error decrypting AS_REP encrypted part")
 		}
 	}
-	if !c.HasKeytab() && !c.HasPassword() {
+	if !c.HasKeyProvider() && !c.HasPassword() {
 		return key, krberror.NewErrorf(krberror.DecryptingError, "no secret available in credentials to perform decryption of AS_REP encrypted part")
 	}
 	b, err := crypto.DecryptEncPart(k.EncPart, key, keyusage.AS_REP_ENCPART)
