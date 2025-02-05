@@ -4,7 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
+	"time"
 )
+
+type NetDialer interface {
+	Dial(network, address string) (net.Conn, error)
+}
 
 // Settings holds optional client settings.
 type Settings struct {
@@ -12,6 +18,7 @@ type Settings struct {
 	assumePreAuthentication bool
 	preAuthEType            int32
 	logger                  *log.Logger
+	dialer                  NetDialer
 }
 
 // jsonSettings is used when marshaling the Settings details to JSON format.
@@ -69,6 +76,23 @@ func Logger(l *log.Logger) func(*Settings) {
 // Logger returns the client logger instance.
 func (s *Settings) Logger() *log.Logger {
 	return s.logger
+}
+
+// Dialer used to configure client with a custom dialer.
+//
+// s := NewSettings(&net.Dialer{Timeout: 1 * time.Minute})
+func Dialer(d NetDialer) func(*Settings) {
+	return func(s *Settings) {
+		s.dialer = d
+	}
+}
+
+// Dialer returns the client dialer instance.
+func (s *Settings) Dialer() NetDialer {
+	if s.dialer != nil {
+		return s.dialer
+	}
+	return &net.Dialer{Timeout: 5 * time.Minute}
 }
 
 // Log will write to the service's logger if it is configured.

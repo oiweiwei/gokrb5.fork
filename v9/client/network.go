@@ -74,7 +74,7 @@ func (cl *Client) sendKDCUDP(realm string, b []byte) ([]byte, error) {
 	if err != nil {
 		return r, err
 	}
-	r, err = dialSendUDP(kdcs, b)
+	r, err = cl.dialSendUDP(kdcs, b)
 	if err != nil {
 		return r, err
 	}
@@ -82,10 +82,10 @@ func (cl *Client) sendKDCUDP(realm string, b []byte) ([]byte, error) {
 }
 
 // dialSendUDP establishes a UDP connection to a KDC.
-func dialSendUDP(kdcs map[int]string, b []byte) ([]byte, error) {
+func (cl *Client) dialSendUDP(kdcs map[int]string, b []byte) ([]byte, error) {
 	var errs []string
 	for i := 1; i <= len(kdcs); i++ {
-		conn, err := net.DialTimeout("udp", kdcs[i], 5*time.Second)
+		conn, err := cl.settings.Dialer().Dial("udp", kdcs[i])
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error establishing connection to %s: %v", kdcs[i], err))
 			continue
@@ -132,7 +132,7 @@ func (cl *Client) sendKDCTCP(realm string, b []byte) ([]byte, error) {
 	if err != nil {
 		return r, err
 	}
-	r, err = dialSendTCP(kdcs, b)
+	r, err = cl.dialSendTCP(kdcs, b)
 	if err != nil {
 		return r, err
 	}
@@ -140,10 +140,10 @@ func (cl *Client) sendKDCTCP(realm string, b []byte) ([]byte, error) {
 }
 
 // dialKDCTCP establishes a TCP connection to a KDC.
-func dialSendTCP(kdcs map[int]string, b []byte) ([]byte, error) {
+func (cl *Client) dialSendTCP(kdcs map[int]string, b []byte) ([]byte, error) {
 	var errs []string
 	for i := 1; i <= len(kdcs); i++ {
-		conn, err := net.DialTimeout("tcp", kdcs[i], 5*time.Second)
+		conn, err := cl.settings.Dialer().Dial("tcp", kdcs[i])
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error establishing connection to %s: %v", kdcs[i], err))
 			continue
