@@ -281,8 +281,10 @@ func (cl *Client) Diagnostics(w io.Writer) error {
 				}
 			}
 		}
-		if cl.Credentials.HasEncryptionKey() {
-			loginRealmEncTypes = append(loginRealmEncTypes, cl.Credentials.EncryptionKey().KeyType)
+		if cl.Credentials.HasKeyset() {
+			for _, key := range cl.Credentials.Keyset() {
+				loginRealmEncTypes = append(loginRealmEncTypes, key.KeyType)
+			}
 		}
 		for _, et := range cl.Config.LibDefaults.DefaultTktEnctypeIDs {
 			var etInKt bool

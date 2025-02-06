@@ -27,7 +27,7 @@ type Credentials struct {
 	realm           string
 	cname           types.PrincipalName
 	keytab          *keytab.Keytab
-	encryptionKey   types.EncryptionKey
+	keyset          []types.EncryptionKey
 	password        string
 	attributes      map[string]interface{}
 	validUntil      time.Time
@@ -100,35 +100,35 @@ func NewFromPrincipalName(cname types.PrincipalName, realm string) *Credentials 
 }
 
 func (c *Credentials) HasKeyProvider() bool {
-	return c.HasKeytab() || c.HasEncryptionKey()
+	return c.HasKeytab() || c.HasKeyset()
 }
 
 func (c *Credentials) KeyProvider() KeyProvider {
 	if c.HasKeytab() {
 		return c.Keytab()
 	}
-	if c.HasEncryptionKey() {
-		return (EncryptionKeyProvider)(c.EncryptionKey())
+	if c.HasKeyset() {
+		return (Keyset)(c.Keyset())
 	}
 
 	return nil
 }
 
 // WithEncryptionKey sets the encryption key in the Credentials struct.
-func (c *Credentials) WithEncryptionKey(key types.EncryptionKey) *Credentials {
-	c.encryptionKey = key
+func (c *Credentials) WithEncryptionKey(key ...types.EncryptionKey) *Credentials {
+	c.keyset = append(c.keyset, key...)
 	c.password, c.keytab = "", keytab.New()
 	return c
 }
 
 // EncryptionKey returns the credential's encryption key.
-func (c *Credentials) EncryptionKey() types.EncryptionKey {
-	return c.encryptionKey
+func (c *Credentials) Keyset() []types.EncryptionKey {
+	return c.keyset
 }
 
 // HasEncryptionKey queries if the Credentials has an NT hash defined.
-func (c *Credentials) HasEncryptionKey() bool {
-	if c.encryptionKey.KeyType != 0 && len(c.encryptionKey.KeyValue) > 0 {
+func (c *Credentials) HasKeyset() bool {
+	if len(c.keyset) > 0 {
 		return true
 	}
 	return false
@@ -137,7 +137,7 @@ func (c *Credentials) HasEncryptionKey() bool {
 // WithKeytab sets the Keytab in the Credentials struct.
 func (c *Credentials) WithKeytab(kt *keytab.Keytab) *Credentials {
 	c.keytab = kt
-	c.password, c.encryptionKey = "", types.EncryptionKey{}
+	c.password, c.keyset = "", nil
 	return c
 }
 
@@ -157,7 +157,7 @@ func (c *Credentials) HasKeytab() bool {
 // WithPassword sets the password in the Credentials struct.
 func (c *Credentials) WithPassword(password string) *Credentials {
 	c.password = password
-	c.encryptionKey, c.keytab = types.EncryptionKey{}, keytab.New()
+	c.keyset, c.keytab = nil, keytab.New()
 	return c
 }
 
