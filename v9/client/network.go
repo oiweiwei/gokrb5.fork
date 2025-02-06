@@ -95,7 +95,7 @@ func (cl *Client) dialSendUDP(kdcs map[int]string, b []byte) ([]byte, error) {
 			continue
 		}
 		// conn is guaranteed to be a UDPConn
-		rb, err := sendUDP(conn.(*net.UDPConn), b)
+		rb, err := sendUDP(conn, b)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error sneding to %s: %v", kdcs[i], err))
 			continue
@@ -106,15 +106,19 @@ func (cl *Client) dialSendUDP(kdcs map[int]string, b []byte) ([]byte, error) {
 }
 
 // sendUDP sends bytes to connection over UDP.
-func sendUDP(conn *net.UDPConn, b []byte) ([]byte, error) {
+func sendUDP(conn net.Conn, b []byte) ([]byte, error) {
 	var r []byte
 	defer conn.Close()
+	pktConn, ok := conn.(net.PacketConn)
+	if !ok {
+		return nil, fmt.Errorf("connection is not a UDP connection")
+	}
 	_, err := conn.Write(b)
 	if err != nil {
 		return r, fmt.Errorf("error sending to (%s): %v", conn.RemoteAddr().String(), err)
 	}
 	udpbuf := make([]byte, 4096)
-	n, _, err := conn.ReadFrom(udpbuf)
+	n, _, err := pktConn.ReadFrom(udpbuf)
 	r = udpbuf[:n]
 	if err != nil {
 		return r, fmt.Errorf("sending over UDP failed to %s: %v", conn.RemoteAddr().String(), err)
@@ -153,7 +157,7 @@ func (cl *Client) dialSendTCP(kdcs map[int]string, b []byte) ([]byte, error) {
 			continue
 		}
 		// conn is guaranteed to be a TCPConn
-		rb, err := sendTCP(conn.(*net.TCPConn), b)
+		rb, err := sendTCP(conn, b)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error sneding to %s: %v", kdcs[i], err))
 			continue
@@ -164,7 +168,7 @@ func (cl *Client) dialSendTCP(kdcs map[int]string, b []byte) ([]byte, error) {
 }
 
 // sendTCP sends bytes to connection over TCP.
-func sendTCP(conn *net.TCPConn, b []byte) ([]byte, error) {
+func sendTCP(conn net.Conn, b []byte) ([]byte, error) {
 	defer conn.Close()
 	var r []byte
 	// RFC 4120 7.2.2 specifies the first 4 bytes indicate the length of the message in big endian order.

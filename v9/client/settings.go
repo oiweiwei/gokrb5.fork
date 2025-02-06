@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type NetDialer interface {
+type KDCDialer interface {
 	Dial(network, address string) (net.Conn, error)
 }
 
@@ -18,7 +18,7 @@ type Settings struct {
 	assumePreAuthentication bool
 	preAuthEType            int32
 	logger                  *log.Logger
-	dialer                  NetDialer
+	dialer                  KDCDialer
 }
 
 // jsonSettings is used when marshaling the Settings details to JSON format.
@@ -81,14 +81,14 @@ func (s *Settings) Logger() *log.Logger {
 // Dialer used to configure client with a custom dialer.
 //
 // s := NewSettings(&net.Dialer{Timeout: 1 * time.Minute})
-func Dialer(d NetDialer) func(*Settings) {
+func Dialer(d KDCDialer) func(*Settings) {
 	return func(s *Settings) {
 		s.dialer = d
 	}
 }
 
 // Dialer returns the client dialer instance.
-func (s *Settings) Dialer() NetDialer {
+func (s *Settings) Dialer() KDCDialer {
 	if s.dialer != nil {
 		return s.dialer
 	}
