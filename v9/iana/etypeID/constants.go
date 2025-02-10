@@ -87,6 +87,8 @@ func EtypeSupported(etype string) int32 {
 		AES256_CTS_HMAC_SHA384_192,
 		DES3_CBC_SHA1_KD,
 		RC4_HMAC,
+		DES_CBC_MD5,
+		DES_CBC_CRC,
 	}
 	id := ETypesByName[etype]
 	if id == 0 {

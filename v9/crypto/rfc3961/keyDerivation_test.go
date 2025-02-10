@@ -1,6 +1,8 @@
 package rfc3961
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestFixWeakKey(t *testing.T) {
 	var weakKeys = []struct {

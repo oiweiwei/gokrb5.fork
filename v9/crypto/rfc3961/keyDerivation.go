@@ -2,7 +2,9 @@ package rfc3961
 
 import (
 	"bytes"
+	"math/bits"
 
+	"github.com/jcmturner/gokrb5/v9/crypto/common"
 	"github.com/jcmturner/gokrb5/v9/crypto/etype"
 )
 
@@ -69,6 +71,41 @@ func DES3StringToKey(secret, salt string, e etype.EType) ([]byte, error) {
 	s := secret + salt
 	tkey := e.RandomToKey(Nfold([]byte(s), e.GetKeySeedBitLength()))
 	return e.DeriveKey(tkey, []byte("kerberos"))
+}
+
+func DESRandomToKey(b []byte) []byte {
+	return fixWeakKey(stretch56Bits(b[:7]))
+}
+
+func DESStringToKey(secret, salt string, e etype.EType) ([]byte, error) {
+	return MITDESStringToKey(secret, salt, e)
+}
+
+// DESMITStringToKey returns a key derived from the string provided according to the definition in RFC 3961 for DES etypes.
+func MITDESStringToKey(secret, salt string, e etype.EType) ([]byte, error) {
+
+	s, _ := common.ZeroPad([]byte(secret+salt), 8)
+
+	tmp := make([]byte, 8)
+
+	for i, odd := 0, false; i < len(s); i, odd = i+8, !odd {
+		block := removeMSBits(s[i : i+8])
+		if odd {
+			block = reverse(block)
+		}
+		for j := 0; j < 8; j++ {
+			tmp[j] ^= block[j]
+		}
+	}
+
+	tmpkey := keyCorrection(addParityBits(tmp))
+
+	key, _, err := DESEncryptData(tmpkey, s, tmpkey, e)
+	if err != nil {
+		return nil, err
+	}
+
+	return keyCorrection(key), nil
 }
 
 // PseudoRandom function as defined in RFC 3961
@@ -166,4 +203,68 @@ func weak(b []byte) bool {
 		}
 	}
 	return false
+}
+
+// removeMSBits function removes MSB from each byte in the slice,
+// while shifting the remaining bits to the left (preserving LSB as zero).
+// NOTE: this function perserves the number of bytes in slice.
+func removeMSBits(b []byte) []byte {
+	out := make([]byte, len(b))
+	for i := range b {
+		out[i] = (b[i] & 0x7f) << 1
+	}
+	return out
+}
+
+// reverse function reverses the order of bits in each byte in the slice,
+// while shifting the remaining bits to the left (preserving LSB as zero).
+// NOTE: this function perserves the number of bytes in slice.
+func reverse(b []byte) []byte {
+	out := make([]byte, len(b))
+	for i := range b {
+		out[i] = bits.Reverse8(b[len(b)-1-i]) << 1
+	}
+	return out
+}
+
+// addParityBits function adds a parity bit to each byte in the slice.
+// This function is designed to work in conjunction with the removeMSBits
+// and reverse function, hence the expectation for the input is that
+// LSB is zero.
+func addParityBits(b []byte) []byte {
+	out := make([]byte, len(b))
+	for i := range b {
+		out[i] = b[i] | pairity(b[i])
+	}
+	return out
+}
+
+// pairity function calculates the parity bit for a byte.
+func pairity(b uint8) uint8 {
+	return uint8((uint16(0x9669) >> ((b ^ (b >> 4)) & 0x0F)) & 1)
+}
+
+// fixpairity function corrects the parity bit in each byte in the slice.
+func fixPairity(b []byte) []byte {
+	out := make([]byte, len(b))
+	for i := range b {
+		if p := pairity(b[i] & 0xFE); p != b[i]&1 {
+			if p == 0 {
+				out[i] = b[i] & 0xFE
+			} else {
+				out[i] = b[i] | 0x01
+			}
+		} else {
+			out[i] = b[i]
+		}
+	}
+	return out
+}
+
+func keyCorrection(b []byte) []byte {
+	b = fixPairity(b)
+	if weak(b) {
+		b[7] ^= 0xF0
+	}
+	return b
 }

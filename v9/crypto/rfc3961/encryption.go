@@ -2,6 +2,7 @@
 package rfc3961
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"crypto/des"
 	"crypto/hmac"
@@ -12,6 +13,62 @@ import (
 	"github.com/jcmturner/gokrb5/v9/crypto/common"
 	"github.com/jcmturner/gokrb5/v9/crypto/etype"
 )
+
+func DESEncryptData(key, data, iv []byte, e etype.EType) ([]byte, []byte, error) {
+	if len(key) != e.GetKeyByteSize() {
+		return nil, nil, fmt.Errorf("incorrect keysize: expected: %v actual: %v", e.GetKeyByteSize(), len(key))
+	}
+	if len(iv) != des.BlockSize {
+		return nil, nil, fmt.Errorf("incorrect iv size: expected: %v actual: %v", des.BlockSize, len(iv))
+	}
+	data, _ = common.ZeroPad(data, e.GetMessageBlockByteSize())
+	block, err := des.NewCipher(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating cipher: %v", err)
+	}
+
+	ct := make([]byte, len(data))
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(ct, data)
+
+	return ct[len(ct)-e.GetMessageBlockByteSize():], ct, nil
+}
+
+func DESEncryptMessage(key, message []byte, usage uint32, e etype.EType) ([]byte, []byte, error) {
+	h := e.GetHashFunc()()
+	c := make([]byte, e.GetConfounderByteSize()+h.Size())
+	// read confounder
+	_, err := rand.Read(c[:e.GetConfounderByteSize()])
+	if err != nil {
+		return []byte{}, []byte{}, fmt.Errorf("could not generate random confounder: %v", err)
+	}
+	// prepend counfounder + zero-checksum
+	plainBytes := append(c, message...)
+	plainBytes, _ = common.ZeroPad(plainBytes, e.GetMessageBlockByteSize())
+	// Derive key for encryption from usage
+	var k []byte
+	if usage != 0 {
+		k, err = e.DeriveKey(key, common.GetUsageKe(usage))
+		if err != nil {
+			return []byte{}, []byte{}, fmt.Errorf("error deriving key for encryption: %v", err)
+		}
+	} else {
+		k = make([]byte, len(key))
+		copy(k, key)
+	}
+	// compute checksum.
+	h.Write(plainBytes)
+	checksum := h.Sum(nil)
+	// set checksum.
+	copy(plainBytes[e.GetConfounderByteSize():], checksum)
+
+	iv, b, err := e.EncryptData(k, plainBytes)
+	if err != nil {
+		return iv, b, fmt.Errorf("error encrypting data: %v", err)
+	}
+
+	return iv, b, nil
+}
 
 // DES3EncryptData encrypts the data provided using DES3 and methods specific to the etype provided.
 func DES3EncryptData(key, data []byte, e etype.EType) ([]byte, []byte, error) {
@@ -110,10 +167,65 @@ func DES3DecryptMessage(key, ciphertext []byte, usage uint32, e etype.EType) ([]
 	return b[e.GetConfounderByteSize():], nil
 }
 
+// DESDecryptMessage decrypts the message provided using DES3 and methods specific to the etype provided.
+// The integrity of the message is also verified.
+func DESDecryptMessage(key, ciphertext []byte, usage uint32, e etype.EType) ([]byte, error) {
+	//Derive the key
+	k, err := e.DeriveKey(key, common.GetUsageKe(usage))
+	if err != nil {
+		return nil, fmt.Errorf("error deriving key: %v", err)
+	}
+	// Strip off the checksum from the end
+	b, err := e.DecryptData(k, ciphertext)
+	if err != nil {
+		return nil, fmt.Errorf("error decrypting: %v", err)
+	}
+	//Verify checksum
+	if !e.VerifyIntegrity(key, ciphertext, b, usage) {
+		return nil, errors.New("error decrypting: integrity verification failed")
+	}
+	//Remove the confounder bytes and hash.
+	return b[e.GetConfounderByteSize()+e.GetHashFunc()().Size():], nil
+}
+
+// DESDecryptData decrypts the data provided using DES3 and methods specific to the etype provided.
+func DESDecryptData(key, data, iv []byte, e etype.EType) ([]byte, error) {
+	if len(key) != e.GetKeyByteSize() {
+		return []byte{}, fmt.Errorf("incorrect keysize: expected: %v actual: %v", e.GetKeyByteSize(), len(key))
+	}
+
+	if len(data) < des.BlockSize || len(data)%des.BlockSize != 0 {
+		return []byte{}, errors.New("ciphertext is not a multiple of the block size")
+	}
+
+	if len(iv) != des.BlockSize {
+		return []byte{}, errors.New("incorrect iv size")
+	}
+
+	block, err := des.NewCipher(key)
+	if err != nil {
+		return []byte{}, fmt.Errorf("error creating cipher: %v", err)
+	}
+	pt := make([]byte, len(data))
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(pt, data)
+	return pt, nil
+}
+
 // VerifyIntegrity verifies the integrity of cipertext bytes ct.
 func VerifyIntegrity(key, ct, pt []byte, usage uint32, etype etype.EType) bool {
 	h := make([]byte, etype.GetHMACBitLength()/8)
 	copy(h, ct[len(ct)-etype.GetHMACBitLength()/8:])
 	expectedMAC, _ := common.GetIntegrityHash(pt, key, usage, etype)
 	return hmac.Equal(h, expectedMAC)
+}
+
+func DESVerifyIntegrity(key, ct, pt []byte, usage uint32, etype etype.EType) bool {
+	hash := etype.GetHashFunc()()
+	h := make([]byte, hash.Size())
+	copy(h, pt[etype.GetConfounderByteSize():])
+	copy(pt[etype.GetConfounderByteSize():], make([]byte, hash.Size()))
+	hash.Write(pt)
+	expectedMAC := hash.Sum(nil)
+	return bytes.Equal(expectedMAC, h)
 }
