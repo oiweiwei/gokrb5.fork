@@ -17,10 +17,10 @@ import (
 
 // APRep implements RFC 4120 KRB_AP_REP: https://tools.ietf.org/html/rfc4120#section-5.5.2.
 type APRep struct {
-	PVNO    int                 `asn1:"explicit,tag:0"`
-	MsgType int                 `asn1:"explicit,tag:1"`
-	EncPart types.EncryptedData `asn1:"explicit,tag:2"`
-	Part    EncAPRepPart        `asn1:"optional"`
+	PVNO             int                 `asn1:"explicit,tag:0"`
+	MsgType          int                 `asn1:"explicit,tag:1"`
+	EncPart          types.EncryptedData `asn1:"explicit,tag:2"`
+	DecryptedEncPart EncAPRepPart        `asn1:"optional"`
 }
 
 // EncAPRepPart is the encrypted part of KRB_AP_REP.
@@ -90,12 +90,12 @@ func (a *APRep) Unmarshal(b []byte) error {
 }
 
 // DecryptPart decrypts the Part within the AP_REP.
-func (a *APRep) DecryptPart(sessionKey types.EncryptionKey) error {
+func (a *APRep) DecryptEncPart(sessionKey types.EncryptionKey) error {
 	b, err := crypto.DecryptEncPart(a.EncPart, sessionKey, keyusage.AP_REP_ENCPART)
 	if err != nil {
 		return err
 	}
-	return a.Part.Unmarshal(b)
+	return a.DecryptedEncPart.Unmarshal(b)
 }
 
 // Unmarshal bytes b into the APRep encrypted part struct.
