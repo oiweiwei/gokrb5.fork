@@ -64,7 +64,6 @@ func NewAPRep(sessionKey types.EncryptionKey, part EncAPRepPart) (APRep, error) 
 		PVNO:    iana.PVNO,
 		MsgType: msgtype.KRB_AP_REP,
 		EncPart: ed,
-		Part:    part,
 	}, nil
 }
 
