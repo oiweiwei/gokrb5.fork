@@ -3,7 +3,7 @@ package rfc3961
 import (
 	"crypto/md5"
 
-	"github.com/jcmturner/gokrb5/v9/crypto/etype"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto/etype"
 )
 
 func DesMacMd5(data, protocolKey []byte, usage []byte, e etype.EType) ([]byte, error) {

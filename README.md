@@ -1,13 +1,30 @@
-# gokrb5
+# Fork: jcmturner/gokrb5
 
-It is recommended to use the latest version: [![Version](https://img.shields.io/github/release/jcmturner/gokrb5.svg)](https://github.com/jcmturner/gokrb5/releases)
+This is a fork of the original [gokrb5](https://github.com/jcmturner/gokrb5) library.
+
+The changes include:
+
+- [x] Unprivate `keytab.Keytab` and `client.CCache` structures.
+
+- [x] Allow using `client.CCache` without a TGT.
+
+- [x] Add legacy encryption schemes: `des-cbc-md5`, `des-cbc-crc`
+
+- [x] Add custom dialer setting for `client.Client`.
+
+- [x] Add support for `credentials.WithEncryptionKey` for `credentials.Credentials` structure.
+
+- [x] Add `messages.APRep` marshaling/unmarhsaling routines.
+
+- [x] Add `messages.APRep` decryption/encryption for the `EncPart`.
+
+It is recommended to use the latest version: [![Version](https://img.shields.io/github/release/oiweiwei/gokrb5.fork.svg)](https://github.com/oiweiwei/gokrb5.fork/releases)
 
 Development will be focused on the latest major version. New features will only be targeted at this version.
 
 | Versions | Dependency Management | Import Path | Usage | Godoc | Go Report Card |
 |----------|-----------------------|-------------|-------|-------|----------------|
-| [![v8](https://github.com/jcmturner/gokrb5/workflows/v8/badge.svg)](https://github.com/jcmturner/gokrb5/actions?query=workflow%3Av8) | Go modules | import "github.com/jcmturner/gokrb5/v8/{sub-package}" | [![Usage](https://img.shields.io/badge/v8-usage-blue)](https://github.com/jcmturner/gokrb5/blob/master/v8/USAGE.md) | [![GoDoc](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/github.com/jcmturner/gokrb5/v8) | [![Go Report Card](https://goreportcard.com/badge/github.com/jcmturner/gokrb5/v8)](https://goreportcard.com/report/github.com/jcmturner/gokrb5/v8) |
-| [![v7](https://github.com/jcmturner/gokrb5/workflows/v7/badge.svg)](https://github.com/jcmturner/gokrb5/actions?query=workflow%3Av7) | gopkg.in | import "gopkg.in/jcmturner/gokrb5.v7/{sub-package}" | [![Usage](https://img.shields.io/badge/v7-usage-blue)](https://github.com/jcmturner/gokrb5/blob/master/USAGE.md) | [![GoDoc](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/github.com/jcmturner/gokrb5@v7.5.0+incompatible) | [![Go Report Card](https://goreportcard.com/badge/gopkg.in/jcmturner/gokrb5.v7)](https://goreportcard.com/report/gopkg.in/jcmturner/gokrb5.v7) |
+| [![v9](https://github.com/oiweiwei/gokrb5.fork/workflows/v9/badge.svg)](https://github.com/oiweiwei/gokrb5.fork/actions?query=workflow%3Av9) | Go modules | import "github.com/oiweiwei/gokrb5.fork/v9/{sub-package}" | [![Usage](https://img.shields.io/badge/v9-usage-blue)](https://github.com/oiweiwei/gokrb5.fork/blob/master/v9/USAGE.md) | [![GoDoc](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/github.com/oiweiwei/gokrb5.fork/v9) | [![Go Report Card](https://goreportcard.com/badge/github.com/oiweiwei/gokrb5.fork/v9)](https://goreportcard.com/report/github.com/oiweiwei/gokrb5.fork/v9) |
 
 
 #### Go Version Support
@@ -43,7 +60,8 @@ It has been reported that gokrb5 also works with the [gollvm](https://go.googles
 | aes128-cts-hmac-sha256-128 | 19 | 19 | 8009 |
 | aes256-cts-hmac-sha384-192 | 20 | 20 | 8009 |
 | rc4-hmac | 23 | -138 | 4757 |
-
+| des-cbc-md5 | 3 | 7 | 3961 |
+| des-cbc-crc | 1 | 1 | 3961 |
 
 The following is working/tested:
 * Tested against MIT KDC (1.6.3 is the oldest version tested against) and Microsoft Active Directory (Windows 2008 R2)

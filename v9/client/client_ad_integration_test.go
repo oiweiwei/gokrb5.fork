@@ -6,13 +6,13 @@ import (
 	"log"
 	"testing"
 
-	"github.com/jcmturner/gokrb5/v9/config"
-	"github.com/jcmturner/gokrb5/v9/iana/etypeID"
-	"github.com/jcmturner/gokrb5/v9/iana/nametype"
-	"github.com/jcmturner/gokrb5/v9/keytab"
-	"github.com/jcmturner/gokrb5/v9/test"
-	"github.com/jcmturner/gokrb5/v9/test/testdata"
-	"github.com/jcmturner/gokrb5/v9/types"
+	"github.com/oiweiwei/gokrb5.fork/v9/config"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/nametype"
+	"github.com/oiweiwei/gokrb5.fork/v9/keytab"
+	"github.com/oiweiwei/gokrb5.fork/v9/test"
+	"github.com/oiweiwei/gokrb5.fork/v9/test/testdata"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 	"github.com/stretchr/testify/assert"
 )
 

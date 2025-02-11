@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jcmturner/gokrb5/v9/iana"
-	"github.com/jcmturner/gokrb5/v9/iana/addrtype"
-	"github.com/jcmturner/gokrb5/v9/iana/adtype"
-	"github.com/jcmturner/gokrb5/v9/iana/nametype"
-	"github.com/jcmturner/gokrb5/v9/iana/trtype"
-	"github.com/jcmturner/gokrb5/v9/keytab"
-	"github.com/jcmturner/gokrb5/v9/test/testdata"
-	"github.com/jcmturner/gokrb5/v9/types"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/addrtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/adtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/nametype"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/trtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/keytab"
+	"github.com/oiweiwei/gokrb5.fork/v9/test/testdata"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 	"github.com/stretchr/testify/assert"
 )
 

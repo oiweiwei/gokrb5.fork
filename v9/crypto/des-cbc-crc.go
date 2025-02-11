@@ -6,10 +6,10 @@ import (
 	"errors"
 	"hash"
 
-	"github.com/jcmturner/gokrb5/v9/crypto/common"
-	"github.com/jcmturner/gokrb5/v9/crypto/rfc3961"
-	"github.com/jcmturner/gokrb5/v9/iana/chksumtype"
-	"github.com/jcmturner/gokrb5/v9/iana/etypeID"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto/common"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto/rfc3961"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/chksumtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 )
 
 // RFC 3961 Section 6.2.3

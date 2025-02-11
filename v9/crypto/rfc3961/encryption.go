@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jcmturner/gokrb5/v9/crypto/common"
-	"github.com/jcmturner/gokrb5/v9/crypto/etype"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto/common"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto/etype"
 )
 
 func DESEncryptData(key, data, iv []byte, e etype.EType) ([]byte, []byte, error) {

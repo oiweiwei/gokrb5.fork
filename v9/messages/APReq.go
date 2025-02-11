@@ -5,16 +5,16 @@ import (
 	"time"
 
 	"github.com/jcmturner/gofork/encoding/asn1"
-	"github.com/jcmturner/gokrb5/v9/asn1tools"
-	"github.com/jcmturner/gokrb5/v9/crypto"
-	"github.com/jcmturner/gokrb5/v9/iana"
-	"github.com/jcmturner/gokrb5/v9/iana/asnAppTag"
-	"github.com/jcmturner/gokrb5/v9/iana/errorcode"
-	"github.com/jcmturner/gokrb5/v9/iana/keyusage"
-	"github.com/jcmturner/gokrb5/v9/iana/msgtype"
-	"github.com/jcmturner/gokrb5/v9/keytab"
-	"github.com/jcmturner/gokrb5/v9/krberror"
-	"github.com/jcmturner/gokrb5/v9/types"
+	"github.com/oiweiwei/gokrb5.fork/v9/asn1tools"
+	"github.com/oiweiwei/gokrb5.fork/v9/crypto"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/asnAppTag"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/errorcode"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/keyusage"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/msgtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/keytab"
+	"github.com/oiweiwei/gokrb5.fork/v9/krberror"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 )
 
 type marshalAPReq struct {

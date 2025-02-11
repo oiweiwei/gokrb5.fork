@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jcmturner/gokrb5/v9/client"
-	"github.com/jcmturner/gokrb5/v9/config"
-	"github.com/jcmturner/gokrb5/v9/keytab"
-	"github.com/jcmturner/gokrb5/v9/spnego"
-	"github.com/jcmturner/gokrb5/v9/test/testdata"
+	"github.com/oiweiwei/gokrb5.fork/v9/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/config"
+	"github.com/oiweiwei/gokrb5.fork/v9/keytab"
+	"github.com/oiweiwei/gokrb5.fork/v9/spnego"
+	"github.com/oiweiwei/gokrb5.fork/v9/test/testdata"
 )
 
 const (

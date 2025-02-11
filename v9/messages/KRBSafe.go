@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/jcmturner/gofork/encoding/asn1"
-	"github.com/jcmturner/gokrb5/v9/iana/asnAppTag"
-	"github.com/jcmturner/gokrb5/v9/iana/msgtype"
-	"github.com/jcmturner/gokrb5/v9/krberror"
-	"github.com/jcmturner/gokrb5/v9/types"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/asnAppTag"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/msgtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/krberror"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 )
 
 // KRBSafe implements RFC 4120 KRB_SAFE: https://tools.ietf.org/html/rfc4120#section-5.6.1.

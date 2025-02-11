@@ -1,4 +1,4 @@
-module github.com/jcmturner/gokrb5/v9
+module github.com/oiweiwei/gokrb5.fork/v9
 
 go 1.23
 
