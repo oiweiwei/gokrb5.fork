@@ -19,6 +19,7 @@ type Settings struct {
 	preAuthEType            int32
 	logger                  *log.Logger
 	dialer                  KDCDialer
+	anyServiceClassSPN      bool
 }
 
 // jsonSettings is used when marshaling the Settings details to JSON format.
@@ -56,6 +57,17 @@ func (s *Settings) DisablePAFXFAST() bool {
 func AssumePreAuthentication(b bool) func(*Settings) {
 	return func(s *Settings) {
 		s.assumePreAuthentication = b
+	}
+}
+
+// AnyServiceClassSPN used to configure the client to allow using tickets
+// matching target SPN that does not match the service class of the target service.
+// Microsoft Services do not require the service class to match the target SPN.
+//
+// s := NewSettings(AnyServiceClassSPN(true))
+func AnyServiceClassSPN(b bool) func(*Settings) {
+	return func(s *Settings) {
+		s.anyServiceClassSPN = b
 	}
 }
 
