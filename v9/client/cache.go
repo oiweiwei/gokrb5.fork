@@ -121,13 +121,14 @@ func (cl *Client) GetCachedTicket(spn string) (messages.Ticket, types.Encryption
 // AnyServiceClassSPN is set, it will return the first entry that matches the SPN
 // or the last entry that matches the host portion of the SPN.
 func (cl *Client) getCacheEntry(spn string) (CacheEntry, bool) {
-	if !cl.settings.anyServiceClassSPN {
-		// default behavior, return exact match.
-		return cl.cache.getEntry(spn)
+
+	if e, ok := cl.cache.getEntry(spn); ok || !cl.settings.anyServiceClassSPN {
+		return e, ok
 	}
-	if sn, _ := types.ParseSPNString(spn); len(sn.NameString) > 1 {
+
+	if sn, _ /* ignore realm */ := types.ParseSPNString(spn); len(sn.NameString) > 1 {
 		for _, e := range cl.cache.Entries {
-			if e.Ticket.SName.Equal(sn) || e.Ticket.SName.EqualHostName(sn) {
+			if e.Ticket.SName.EqualHostName(sn) {
 				return e, true
 			}
 		}
