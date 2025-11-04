@@ -49,7 +49,7 @@ func (pn PrincipalName) Equal(n PrincipalName) bool {
 
 func (pn PrincipalName) EqualHostName(n PrincipalName) bool {
 	return len(pn.NameString) >= 2 && len(n.NameString) >= 2 &&
-		pn.NameString[len(pn.NameString)-1] == n.NameString[len(n.NameString)-1]
+		strings.EqualFold(pn.NameString[len(pn.NameString)-1], n.NameString[len(n.NameString)-1])
 }
 
 // PrincipalNameString returns the PrincipalName in string form.
